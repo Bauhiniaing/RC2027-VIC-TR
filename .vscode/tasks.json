@@ -1,0 +1,13 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Flash (DAPLink)",
+            "type": "shell",
+            "command": "python -m pyocd flash --pack \"${userHome}/tools/packs/Keil.STM32H7xx_DFP.4.1.3.pack\" -t stm32h723vgtx -f 4000000 build/Debug/H7_TR.elf",
+            "options": { "cwd": "${workspaceFolder}" },
+            "group": "build",
+            "problemMatcher": []
+        }
+    ]
+}
