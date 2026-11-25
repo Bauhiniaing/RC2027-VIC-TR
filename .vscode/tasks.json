@@ -5,7 +5,19 @@
             "label": "Flash (DAPLink)",
             "type": "shell",
             "command": "python -m pyocd flash --pack \"${userHome}/tools/packs/Keil.STM32H7xx_DFP.4.1.3.pack\" -t stm32h723vgtx -f 4000000 build/Debug/H7_TR.elf",
-            "options": { "cwd": "${workspaceFolder}" },
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": "build",
+            "problemMatcher": []
+        },
+        {
+            "label": "Flash (J-Link)",
+            "type": "shell",
+            "command": "cmd /c scripts\\flash_jlink.bat Debug",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
             "group": "build",
             "problemMatcher": []
         }
