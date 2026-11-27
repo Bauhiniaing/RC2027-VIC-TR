@@ -15,6 +15,7 @@
 #include "lcd.h"
 #include "vofa.h"
 #include "bsp_crsf.h"
+#include "bsp_imu.h"
 #include <stdio.h>
 
 #define PRINT_PERIOD_MS 500  /* 打印 2Hz */
@@ -78,48 +79,59 @@ __attribute__((unused)) static void print_motors(void)
 static void lcd_draw_static(void)
 {
     LCD_Fill(0, 0, LCD_W, LCD_H, BLACK);
-    LCD_ShowChinese(20, 4, "达妙科技", WHITE, BLACK, 32, 0);
-    LCD_ShowString(160, 12, (const uint8_t *)"H7_TR", BRRED, BLACK, 24, 0);
-    LCD_DrawLine(0, 42, LCD_W - 1, 42, GRAY);
 }
 
 /* 屏幕：周期刷新的内容（只重画数字，不清屏，避免闪烁） */
 static void lcd_draw_status(void)
 {
     uint32_t t = HAL_GetTick() / 1000;
-    LCD_Printf(4, 50, WHITE, BLACK, 16, "up %02lu:%02lu:%02lu",
+    LCD_Printf(4, 4, WHITE, BLACK, 16, "up %02lu:%02lu:%02lu",
                (unsigned long)(t / 3600), (unsigned long)(t / 60 % 60), (unsigned long)(t % 60));
 
     for (int b = 1; b <= 3; b++) {
         FDCAN_HandleTypeDef *h = (b == 1) ? &hfdcan1 : (b == 2) ? &hfdcan2 : &hfdcan3;
         const bsp_fdcan_stat_t *s = bsp_fdcan_get_stat(h);
-        LCD_Printf(4, 54 + b * 22, s->bus_off_cnt ? RED : GREEN, BLACK, 16,
+        LCD_Printf(4, 6 + b * 20, s->bus_off_cnt ? RED : GREEN, BLACK, 16,
                    "CAN%d rx%-8lu tx%-8lu", b, (unsigned long)s->rx_cnt, (unsigned long)s->tx_cnt);
     }
 
     int online = 0;
     for (int i = 0; i < dji_motor_count(); i++) online += dji_motor_is_online(i);
-    LCD_Printf(4, 150, online ? GREEN : YELLOW, BLACK, 24, "motor %2d/%-2d", online, dji_motor_count());
+    LCD_Printf(4, 90, online ? GREEN : YELLOW, BLACK, 24, "motor %2d/%-2d", online, dji_motor_count());
 
     /* 遥控器：连上显示绿色 + 上行链路质量 + 前 4 路通道(us)；失控显示红色 */
     const crsf_link_t *lk = crsf_get_link();
     const crsf_stat_t *st = crsf_get_stat();
     if (crsf_is_connected()) {
-        LCD_Printf(4, 180, GREEN, BLACK, 16, "RC OK  LQ%3u%% -%3udBm   ", lk->up_lq, lk->up_rssi1);
+        LCD_Printf(4, 120, GREEN, BLACK, 16, "RC OK  LQ%3u%% -%3udBm   ", lk->up_lq, lk->up_rssi1);
     } else {
-        LCD_Printf(4, 180, RED, BLACK, 16, "RC LOST rx%-8lu crc%-5lu",
+        LCD_Printf(4, 120, RED, BLACK, 16, "RC LOST rx%-8lu crc%-5lu",
                    (unsigned long)st->rx_bytes, (unsigned long)st->crc_err);
     }
-    LCD_Printf(4, 200, WHITE, BLACK, 16, "%4u %4u %4u %4u",
+    LCD_Printf(4, 140, WHITE, BLACK, 16, "%4u %4u %4u %4u",
                crsf_get_us(0), crsf_get_us(1), crsf_get_us(2), crsf_get_us(3));
     /* 换算后的摇杆：前推、右推都应该是正数，用来核对方向 */
     rc_sticks_t sk = crsf_get_sticks();
-    LCD_Printf(4, 220, CYAN, BLACK, 16, "L%+5.2f %+5.2f R%+5.2f %+5.2f ", sk.lx, sk.ly, sk.rx, sk.ry);
+    LCD_Printf(4, 160, CYAN, BLACK, 16, "L%+5.2f %+5.2f R%+5.2f %+5.2f ", sk.lx, sk.ly, sk.rx, sk.ry);
+
+    /* 陀螺仪：在线显示 roll/pitch/yaw；离线显示收到的字节数和 CRC 错，用来查接线 */
+    const imu_stat_t *is = imu_get_stat();
+    if (imu_is_online()) {
+        LCD_Printf(4, 190, GREEN, BLACK, 16, "IMU R%+7.1f P%+7.1f        ",
+                   imu_roll_deg(), imu_pitch_deg());
+        LCD_Printf(4, 210, GREEN, BLACK, 16, "    Y%+7.1f fr%-9lu    ",
+                   imu_yaw_deg(), (unsigned long)is->frames);
+    } else {
+        LCD_Printf(4, 190, RED, BLACK, 16, "IMU LOST                   ");
+        LCD_Printf(4, 210, RED, BLACK, 16, "b%-8lu crc%-6lu err%-5lu ",
+                   (unsigned long)is->bytes, (unsigned long)is->crc_err, (unsigned long)is->uart_err);
+    }
 }
 
 void app_init(void)
 {
     crsf_init();      /* ELRS 接收机：UART7 PE7/PE8 */
+    imu_init();       /* HiPNUC 陀螺仪：USART10，见 User/imu/imu_uart.h */
     bsp_fdcan_init();
     int err = dji_motor_init();
     motor_ctrl_init();
@@ -165,6 +177,7 @@ void app_loop(void)
 {
     static uint32_t last_print, last_lcd, last_tlm;
     uint32_t now = HAL_GetTick();
+    imu_poll();       /* 串口字节交给解码器，越勤越好 */
     if (now - last_tlm >= TLM_PERIOD_MS) {
         last_tlm = now;
         /* 回传给遥控器，先发个模式字符串验证回传链路；有电压采样后可以加 crsf_send_battery() */

@@ -55,6 +55,10 @@ target_sources(${CMAKE_PROJECT_NAME} PRIVATE
     User/control/pid.c
     User/control/motor_ctrl.c
     User/lcd/lcd.c
+    User/imu/bsp_imu.c
+    User/imu/imu_uart.c
+    User/imu/hipnuc_decoder.c
+    User/imu/hipnuc_data.c
 )
 
 # Add include paths
@@ -65,6 +69,7 @@ target_include_directories(${CMAKE_PROJECT_NAME} PRIVATE
     User/app
     User/control
     User/lcd
+    User/imu
 )
 
 # Add project symbols (macros)
