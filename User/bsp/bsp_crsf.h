@@ -82,6 +82,23 @@ typedef struct {
 /* 失控时四个值全是 0 */
 rc_sticks_t crsf_get_sticks(void);
 
+/* ---- 拨杆和按键（新遥控器 Remote_QAQ，2026-11-28） ----
+ *   CH5(下标4)  三档拨杆 PC0/PC1：拨到 PC0 一侧 = 2，中 = 1，PC1 一侧 = 0
+ *   CH6(下标5)  三档拨杆 PC2/PC3：拨到 PC2 一侧 = 2，中 = 1，PC3 一侧 = 0
+ *   CH7~CH12(下标6~11)  按键 1~6（PA15 PC12 PD2 PB3 PB4 PB5），按下 2000 / 松开 1000
+ *   CH13~CH16  遥控器固定发 1000，没用 */
+#define RC_SW1_CH        4
+#define RC_SW2_CH        5
+#define RC_BTN_FIRST_CH  6
+#define RC_BTN_NUM       6
+
+/* 拨杆 1/2 档位：0 / 1 / 2，失控时返回 0 */
+static inline int crsf_get_sw1(void) { return crsf_get_switch(RC_SW1_CH); }
+static inline int crsf_get_sw2(void) { return crsf_get_switch(RC_SW2_CH); }
+
+/* 按键 n = 1~6：1 = 按下，0 = 松开；失控时返回 0 */
+int crsf_get_button(int n);
+
 const crsf_link_t *crsf_get_link(void);
 const crsf_stat_t *crsf_get_stat(void);
 

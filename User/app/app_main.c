@@ -113,6 +113,11 @@ static void lcd_draw_status(void)
     /* 换算后的摇杆：前推、右推都应该是正数，用来核对方向 */
     rc_sticks_t sk = crsf_get_sticks();
     LCD_Printf(4, 160, CYAN, BLACK, 16, "L%+5.2f %+5.2f R%+5.2f %+5.2f ", sk.lx, sk.ly, sk.rx, sk.ry);
+    /* 拨杆档位(0/1/2) + 6 个按键(1 = 按下)，用来核对新遥控器 */
+    LCD_Printf(4, 174, CYAN, BLACK, 16, "SW %d %d  KEY %d%d%d%d%d%d   ",
+               crsf_get_sw1(), crsf_get_sw2(),
+               crsf_get_button(1), crsf_get_button(2), crsf_get_button(3),
+               crsf_get_button(4), crsf_get_button(5), crsf_get_button(6));
 
     /* 陀螺仪：在线显示 roll/pitch/yaw；离线显示收到的字节数和 CRC 错，用来查接线 */
     const imu_stat_t *is = imu_get_stat();

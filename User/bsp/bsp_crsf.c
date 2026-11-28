@@ -192,6 +192,12 @@ rc_sticks_t crsf_get_sticks(void)
     return s;
 }
 
+int crsf_get_button(int n)
+{
+    if (n < 1 || n > RC_BTN_NUM || !crsf_is_connected()) return 0;
+    return crsf_get_us(RC_BTN_FIRST_CH + n - 1) > 1500;
+}
+
 const crsf_link_t *crsf_get_link(void) { return (const crsf_link_t *)&s_link; }
 const crsf_stat_t *crsf_get_stat(void) { return (const crsf_stat_t *)&s_stat; }
 
